@@ -41,37 +41,35 @@ jobs:
         if-no-files-found: error
 
   build-linux:
-    name: Build (Linux)
+    name: Linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        shell: bash
         run: |
-          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config \
-            libx11-dev libxext-dev libxrandr-dev libxrender-dev libxfixes-dev libxss-dev libxcursor-dev \
-            libxi-dev libxinerama-dev \
-            libwayland-dev libxkbcommon-dev \
-            libpulse-dev libasound2-dev libpipewire-0.3-dev \
-            libdrm-dev libgbm-dev \
-            libudev-dev mesa-common-dev
+            build-essential cmake ninja-build pkg-config git \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev libjack-dev libsndio-dev \
+            libaudio-dev libfribidi-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
+            libxss-dev libxtst-dev libxkbcommon-dev libxinerama-dev libxrender-dev libxxf86vm-dev \
+            libwayland-dev wayland-protocols libdecor-0-dev \
+            libdrm-dev libgbm-dev libegl1-mesa-dev libgles2-mesa-dev libgl1-mesa-dev \
+            libvulkan-dev \
+            libdbus-1-dev libibus-1.0-dev libudev-dev liburing-dev
 
       - name: Configure CMake
-        shell: bash
         run: |
-          set -euo pipefail
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_X11_XINPUT=ON || {
-            echo "XINPUT missing; retrying with SDL_X11_XINPUT=OFF";
-            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_X11_XINPUT=OFF;
-          }
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSDL_TEST=OFF \                 # optional, speeds up build
+            -DSDL_X11_XTEST=ON               # explicitly enable if you want it
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build --config Release --verbose
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
