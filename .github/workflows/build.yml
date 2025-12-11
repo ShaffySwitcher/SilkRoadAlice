@@ -9,8 +9,11 @@ on:
 
 jobs:
   build-windows:
-    name: Windows (x64)
+    name: Windows (${{ matrix.arch }})
     runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x86, x64]
     
     steps:
     - name: Checkout code
@@ -19,7 +22,7 @@ jobs:
     - name: Setup MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: x64
+        arch: ${{ matrix.arch }}
     
     - name: Configure CMake
       run: |
