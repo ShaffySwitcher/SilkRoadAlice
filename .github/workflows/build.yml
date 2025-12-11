@@ -1,0 +1,91 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.arch }}
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SilkRoadAlice-Windows-${{ matrix.arch }}
+        path: |
+          build/bin/SilkRoadAlice.exe
+          build/bin/*.dll
+        if-no-files-found: error
+
+  build-linux:
+    name: Linux (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            cmake_flags: ""
+          - arch: x86
+            cmake_flags: "-DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32"
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies (x64)
+      if: matrix.arch == 'x64'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build build-essential \
+          libx11-dev libxext-dev libwayland-dev libxkbcommon-dev \
+          libegl1-mesa-dev libibus-1.0-dev
+    
+    - name: Install dependencies (x86)
+      if: matrix.arch == 'x86'
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build \
+          gcc-multilib g++-multilib \
+          libx11-dev:i386 libxext-dev:i386 \
+          libwayland-dev:i386 libxkbcommon-dev:i386 \
+          libegl1-mesa-dev:i386 libibus-1.0-dev:i386
+    
+    - name: Configure CMake
+      run: |
+        cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SilkRoadAlice-Linux-${{ matrix.arch }}
+        path: |
+          build/bin/SilkRoadAlice
+          build/lib/*.so*
+        if-no-files-found: error
