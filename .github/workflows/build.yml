@@ -41,32 +41,43 @@ jobs:
         if-no-files-found: error
 
   build-linux:
-    name: Linux (x64)
+    name: Build (Linux)
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cmake ninja-build build-essential \
-          libx11-dev libxext-dev libxcursor-dev libwayland-dev libxkbcommon-dev \
-          libegl1-mesa-dev libibus-1.0-dev
-    
-    - name: Configure CMake
-      run: |
-        cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
-    
-    - name: Build
-      run: cmake --build build --config Release
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: SilkRoadAlice-Linux-x64
-        path: |
-          build/bin/SilkRoadAlice
-          build/lib/*.so*
-        if-no-files-found: error
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config \
+            libx11-dev libxext-dev libxrandr-dev libxrender-dev libxfixes-dev libxss-dev libxcursor-dev \
+            libxi-dev libxinerama-dev \
+            libwayland-dev libxkbcommon-dev \
+            libpulse-dev libasound2-dev libpipewire-0.3-dev \
+            libdrm-dev libgbm-dev \
+            libudev-dev mesa-common-dev
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_X11_XINPUT=ON || {
+            echo "XINPUT missing; retrying with SDL_X11_XINPUT=OFF";
+            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSDL_X11_XINPUT=OFF;
+          }
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SilkRoadAlice-Linux
+          path: |
+            build/bin/
+            build/lib/
+          if-no-files-found: warn
